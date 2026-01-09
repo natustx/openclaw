@@ -127,6 +127,7 @@ export type SessionEntry = {
     | "slack"
     | "signal"
     | "imessage"
+    | "msteams"
     | "webchat";
   lastTo?: string;
   lastAccountId?: string;
