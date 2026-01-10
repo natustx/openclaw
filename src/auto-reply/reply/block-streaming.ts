@@ -66,7 +66,13 @@ export function resolveBlockStreamingChunking(
   breakPreference: "paragraph" | "newline" | "sentence";
 } {
   const providerKey = normalizeChunkProvider(provider);
-  const textLimit = resolveTextChunkLimit(cfg, providerKey, accountId);
+  const providerId = providerKey ? normalizeProviderId(providerKey) : null;
+  const providerChunkLimit = providerId
+    ? getProviderPlugin(providerId)?.outbound?.textChunkLimit
+    : undefined;
+  const textLimit = resolveTextChunkLimit(cfg, providerKey, accountId, {
+    fallbackLimit: providerChunkLimit,
+  });
   const chunkCfg = cfg?.agents?.defaults?.blockStreamingChunk;
   const maxRequested = Math.max(
     1,
@@ -98,8 +104,13 @@ export function resolveBlockStreamingCoalescing(
   },
 ): BlockStreamingCoalescing | undefined {
   const providerKey = normalizeChunkProvider(provider);
-  const textLimit = resolveTextChunkLimit(cfg, providerKey, accountId);
   const providerId = providerKey ? normalizeProviderId(providerKey) : null;
+  const providerChunkLimit = providerId
+    ? getProviderPlugin(providerId)?.outbound?.textChunkLimit
+    : undefined;
+  const textLimit = resolveTextChunkLimit(cfg, providerKey, accountId, {
+    fallbackLimit: providerChunkLimit,
+  });
   const providerDefaults = providerId
     ? getProviderPlugin(providerId)?.streaming?.blockStreamingCoalesceDefaults
     : undefined;
