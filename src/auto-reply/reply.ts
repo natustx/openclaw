@@ -29,6 +29,10 @@ import {
 import { resolveSessionFilePath } from "../config/sessions.js";
 import { logVerbose } from "../globals.js";
 import { clearCommandLane, getQueueSize } from "../process/command-queue.js";
+import {
+  getProviderPlugin,
+  normalizeProviderId,
+} from "../providers/plugins/index.js";
 import { CHAT_PROVIDER_ORDER } from "../providers/registry.js";
 import { normalizeMainKey } from "../routing/session-key.js";
 import { defaultRuntime } from "../runtime.js";
@@ -135,28 +139,23 @@ function stripSenderPrefix(value?: string) {
 function resolveElevatedAllowList(
   allowFrom: AgentElevatedAllowFromConfig | undefined,
   provider: string,
-  discordFallback?: Array<string | number>,
+  fallbackAllowFrom?: Array<string | number>,
 ): Array<string | number> | undefined {
-  if (!allowFrom) return provider === "discord" ? discordFallback : undefined;
-  if (provider === "discord") {
-    const hasExplicit = Object.hasOwn(allowFrom, "discord");
-    if (hasExplicit) return allowFrom.discord;
-    return discordFallback;
-  }
+  if (!allowFrom) return fallbackAllowFrom;
   const value = allowFrom[provider as keyof AgentElevatedAllowFromConfig];
-  return Array.isArray(value) ? value : undefined;
+  return Array.isArray(value) ? value : fallbackAllowFrom;
 }
 
 function isApprovedElevatedSender(params: {
   provider: string;
   ctx: MsgContext;
   allowFrom?: AgentElevatedAllowFromConfig;
-  discordFallback?: Array<string | number>;
+  fallbackAllowFrom?: Array<string | number>;
 }): boolean {
   const rawAllow = resolveElevatedAllowList(
     params.allowFrom,
     params.provider,
-    params.discordFallback,
+    params.fallbackAllowFrom,
   );
   if (!rawAllow || rawAllow.length === 0) return false;
 
@@ -216,25 +215,29 @@ function resolveElevatedPermissions(params: {
   if (!enabled) return { enabled, allowed: false };
   if (!params.provider) return { enabled, allowed: false };
 
-  const discordFallback =
-    params.provider === "discord"
-      ? params.cfg.discord?.dm?.allowFrom
-      : undefined;
+  const normalizedProvider = normalizeProviderId(params.provider);
+  const fallbackAllowFrom = normalizedProvider
+    ? getProviderPlugin(normalizedProvider)?.elevated?.allowFromFallback?.({
+        cfg: params.cfg,
+        accountId: params.ctx.AccountId,
+      })
+    : undefined;
   const globalAllowed = isApprovedElevatedSender({
     provider: params.provider,
     ctx: params.ctx,
     allowFrom: globalConfig?.allowFrom,
-    discordFallback,
+    fallbackAllowFrom,
   });
   if (!globalAllowed) return { enabled, allowed: false };
 
   const agentAllowed = agentConfig?.allowFrom
-    ? isApprovedElevatedSender({
-        provider: params.provider,
-        ctx: params.ctx,
-        allowFrom: agentConfig.allowFrom,
-      })
-    : true;
+      ? isApprovedElevatedSender({
+          provider: params.provider,
+          ctx: params.ctx,
+          allowFrom: agentConfig.allowFrom,
+          fallbackAllowFrom,
+        })
+      : true;
   return { enabled, allowed: globalAllowed && agentAllowed };
 }
 
@@ -481,8 +484,11 @@ export async function getReplyFromConfig(
     agentCfg?.blockStreamingBreak === "message_end"
       ? "message_end"
       : "text_end";
+  const providerId = normalizeProviderId(providerKey);
+  const providerPlugin = providerId ? getProviderPlugin(providerId) : undefined;
   const allowBlockStreaming =
-    providerKey === "telegram" || explicitBlockStreamingEnable;
+    explicitBlockStreamingEnable ||
+    Boolean(providerPlugin?.capabilities.blockStreaming);
   const blockStreamingEnabled =
     resolvedBlockStreaming === "on" &&
     opts?.disableBlockStreaming !== true &&
