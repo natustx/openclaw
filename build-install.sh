@@ -62,6 +62,11 @@ echo ""
 echo "Installed moltbot:"
 "$WRAPPER_PATH" --help 2>&1 | head -5
 
+# Run security audit
+echo ""
+echo "Running security audit..."
+"$WRAPPER_PATH" security audit --deep
+
 # Restart daemon if it was running
 if [ "$DAEMON_WAS_RUNNING" = true ]; then
     echo ""
