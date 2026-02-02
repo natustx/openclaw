@@ -4,8 +4,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BIN_DIR="$HOME/prj/util/bin"
 ENTRY_PATH="$SCRIPT_DIR/dist/entry.js"
-WRAPPER_PATH="$BIN_DIR/moltbot"
-LAUNCHD_LABEL="com.moltbot.gateway"
+WRAPPER_PATH="$BIN_DIR/openclaw"
+LAUNCHD_LABEL="ai.openclaw.gateway"
 
 cd "$SCRIPT_DIR"
 
@@ -59,7 +59,7 @@ echo "Created wrapper: $WRAPPER_PATH"
 
 # Verify
 echo ""
-echo "Installed moltbot:"
+echo "Installed openclaw:"
 "$WRAPPER_PATH" --help 2>&1 | head -5
 
 # Run security audit
