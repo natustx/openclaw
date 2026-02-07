@@ -9,6 +9,11 @@ LAUNCHD_LABEL="ai.openclaw.gateway"
 
 cd "$SCRIPT_DIR"
 
+# Sync with origin (handles force-pushed rebases)
+echo "Syncing with origin..."
+git fetch origin
+git reset --hard origin/main
+
 # Check if daemon is running before build
 DAEMON_WAS_RUNNING=false
 if launchctl print "gui/$UID/$LAUNCHD_LABEL" &>/dev/null; then
