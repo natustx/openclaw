@@ -33,10 +33,11 @@ echo "Cleaning dist/..."
 rm -rf dist/
 
 echo "Installing dependencies..."
-bun install
+pnpm install
+pnpm dedupe
 
 echo "Building..."
-bun run build
+pnpm run build
 
 # Verify build output exists
 if [ ! -f "$ENTRY_PATH" ]; then
